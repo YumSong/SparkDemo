@@ -4,3 +4,4 @@
 3、远程调试spark项目前，首先要把整个项目make一遍，然后在setJar的时候别把其他的包放进去，远程调试spark的时候，spark里面
    jar包库相当于你的mvn中央仓库了<br>
 4、版本千万主要对应好<br>
+5、等有钱加内存条把集群内存给扩大，虚拟机8g内存不能同时跑spark，hadoop，kafka，zookeeper和idea，后面要是加上redis和hbase等缓存和数据库就不够用了<br>

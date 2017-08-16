@@ -42,9 +42,10 @@ object TestConsumer {
 
       val records: ConsumerRecords[String, String] = consumer.poll(100)
 
-      i = i+1
-
-      println(records.count()+" "+i)
+      val it = records.iterator()
+      while (it.hasNext){
+        println(it.next().value())
+      }
 
       Thread sleep 3000
 

@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 import com.alibaba.fastjson.JSON
+import redis.clients.jedis.JedisPool
 
 import scala.collection.immutable.{List, ListMap}
 import scala.io.Source
@@ -13,17 +14,23 @@ import scala.io.Source
   */
 object HttpUtil {
 
-  def changeGps2Redis(): List[ListMap[String,String]] ={
+  def changeGps2Redis(jedisPool:JedisPool): List[ListMap[String,String]] ={
 
-    var url:String = ""
+    println("test")
 
-    var last_get_time:String = ""
+    val jedis = jedisPool.getResource
+
+    var url:String = jedis.get("url")
+
+    var last_get_time:String = jedis.get("last_get_time")
 
     if(last_get_time!=null){
 
       url = url+"last_get_time="+delStr(last_get_time)
 
     }
+
+    println(url)
 
     val str = Source.fromURL(url,"UTF-8")
 
@@ -67,7 +74,11 @@ object HttpUtil {
 
       list = list :+ listMap
 
+      println(listMap)
+
     }
+
+    jedis.set("last_get_time",last_get_time)
 
     list
 

@@ -2,6 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/Core/Core.iml" filepath="$PROJECT_DIR$/Core/Core.iml" />
+      <module fileurl="file://$PROJECT_DIR$/GetData/GetData.iml" filepath="$PROJECT_DIR$/GetData/GetData.iml" />
+      <module fileurl="file://$PROJECT_DIR$/SendData/SendData.iml" filepath="$PROJECT_DIR$/SendData/SendData.iml" />
       <module fileurl="file://$PROJECT_DIR$/SparkDemo.iml" filepath="$PROJECT_DIR$/SparkDemo.iml" />
     </modules>
   </component>

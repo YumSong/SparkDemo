@@ -1,4 +1,4 @@
-package com.zhbit.spark
+package com.zhbit.spark.kafka
 
 import java.util.Properties
 
@@ -13,9 +13,9 @@ import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
   * start consumer
   * ./bin/kafka-console-consumer.sh --bootstrap-server datanode1:9092 --zookeeper datanode1:2181,datanode2:2181,datanode3:2181 --topic test1 --from-beginning
   */
-object TestProductor {
+class TestProductor {
 
-  def main(args: Array[String]) {
+  def Kafka_Productor(): Unit ={
     val props:Properties = new Properties()
 
     props.put("bootstrap.servers", "datanode1:9092")

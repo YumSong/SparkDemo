@@ -1,4 +1,4 @@
-package com.zhbit.spark
+package com.zhbit.spark.kafka
 
 import java.util
 import java.util.Properties
@@ -14,9 +14,9 @@ import org.apache.kafka.clients.consumer.{ConsumerRecords, KafkaConsumer}
   * start consumer
   * ./bin/kafka-console-consumer.sh --bootstrap-server datanode1:9092 --zookeeper datanode1:2181,datanode2:2181,datanode3:2181 --topic test1 --from-beginning
   */
-object TestConsumer {
+class TestConsumer {
 
-  def main(args: Array[String]) {
+  def Kafka_Consume(): Unit ={
 
     val props: Properties = new Properties()
 
@@ -52,6 +52,5 @@ object TestConsumer {
     }
 
   }
-
 
 }

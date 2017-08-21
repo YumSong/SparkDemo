@@ -1,4 +1,4 @@
-package com.zhbit.spark
+package com.zhbit.spark.spark_mysql
 
 import com.zhbit.spark.common.ConnetionInfo
 import org.apache.spark.sql.{DataFrame, SQLContext}
@@ -6,9 +6,9 @@ import org.apache.spark.sql.{DataFrame, SQLContext}
 /**
   * Created by admin on 2017/8/16.
   */
-object SparkFMysql {
+class SparkFMysql {
 
-  def main(args: Array[String]) {
+  def getFMysql {
 
     ConnetionInfo.setJar("/home/song/IdeaProjects/SparkDemo/out/artifacts/GetData_jar/GetData.jar")
 

@@ -1,3 +1,3 @@
 Manifest-Version: 1.0
-Main-Class: com.zhbit.spark.Spark2Mysql
+Main-Class: com.zhbit.spark.SendMain
 

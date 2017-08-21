@@ -1,14 +1,14 @@
-package com.zhbit.spark
+package com.zhbit.spark.spark_mysql
 
 import com.zhbit.spark.common.ConnetionInfo
 import org.apache.spark.sql.{DataFrame, SQLContext}
 
-object Spark2Mysql {
+class Spark2Mysql {
 
-  def main(args: Array[String]) {
+  def send2Mysql(args: Array[String]) {
 
 //    /home/song/IdeaProjects/SparkDemo/out/artifacts/SendData_jar
-    ConnetionInfo.setJar("/home/song/IdeaProjects/SparkDemo/out/artifacts/SendData_jar/SendData:jar")
+    ConnetionInfo.setJar("/home/song/IdeaProjects/SparkDemo/out/artifacts/SendData_jar/SendData.jar")
 
     val sc = ConnetionInfo.getSc("sendDataToMysql")
 

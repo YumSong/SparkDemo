@@ -18,13 +18,13 @@ object ConnetionInfo {
 
   private val DRIVER = "com.mysql.jdbc.Driver"
 
-  private val SPARK_URL = "spark://datanode1:7077"
+  private var SPARK_URL = "spark://datanode1:7077"
 
   private val EXECUTOR_MEMORY = "spark.executor.memory"
 
   private val DRIVER_MEMORY = "spark.driver.memory"
 
-  private val EXECUTOR_CORE = "spark.executors.cores"
+  private val CORE_MAX = "spark.cores.max"
 
   private var JAR_PATH = "/home/song/IdeaProjects/SparkDemo/out/artifacts/SparkDemo_jar/SparkDemo.jar"
 
@@ -41,8 +41,9 @@ object ConnetionInfo {
     val conf = new SparkConf()
       .setAppName(appName)
       .setMaster(ConnetionInfo.SPARK_URL)
-      .set(ConnetionInfo.EXECUTOR_MEMORY, "512m").set(ConnetionInfo.DRIVER_MEMORY, "512m")
-      .set(ConnetionInfo.EXECUTOR_CORE,"1")
+      .set(ConnetionInfo.EXECUTOR_MEMORY, "1g")
+//      .set(ConnetionInfo.DRIVER_MEMORY, "1g")
+      .set(ConnetionInfo.CORE_MAX,"1")
       .setJars(List(ConnetionInfo.JAR_PATH))
 
     val sc = new SparkContext(conf)
@@ -70,5 +71,7 @@ object ConnetionInfo {
   def setJar(path :String) ={ this.JAR_PATH = path}
 
   def getJar() = this.JAR_PATH
+
+  def setMaster(URL:String) = { this.SPARK_URL = URL}
 
 }

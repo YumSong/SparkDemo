@@ -34,6 +34,8 @@ object ConnetionInfo {
 
   private val redisTimeout = 30000
 
+  private val APP_NAME = "Test"
+
   lazy val jedisPool = new JedisPool(new GenericObjectPoolConfig(), redisHost, redisPort, redisTimeout)
 
   def getSc(appName:String): SparkContext ={
@@ -43,6 +45,20 @@ object ConnetionInfo {
       .setMaster(ConnetionInfo.SPARK_URL)
       .set(ConnetionInfo.EXECUTOR_MEMORY, "1g")
 //      .set(ConnetionInfo.DRIVER_MEMORY, "1g")
+      .set(ConnetionInfo.CORE_MAX,"1")
+      .setJars(List(ConnetionInfo.JAR_PATH))
+
+    val sc = new SparkContext(conf)
+
+    sc
+  }
+
+  def getSc(): SparkContext ={
+
+    val conf = new SparkConf()
+      .setAppName(APP_NAME)
+      .setMaster(ConnetionInfo.SPARK_URL)
+      .set(ConnetionInfo.EXECUTOR_MEMORY, "1g")
       .set(ConnetionInfo.CORE_MAX,"1")
       .setJars(List(ConnetionInfo.JAR_PATH))
 

@@ -7,6 +7,11 @@ import org.apache.spark.mllib.recommendation.{ALS, Rating}
 
 class SparkAction {
 
+
+  ConnetionInfo.setJar("/home/song/IdeaProjects/SparkDemo/out/artifacts/GetData_jar/GetData.jar")
+
+  var sc = ConnetionInfo.getSc()
+
   def dealData(): Unit ={
 
     println("enter test")
@@ -14,8 +19,6 @@ class SparkAction {
     ConnetionInfo.setJar("/home/song/IdeaProjects/SparkDemo/out/artifacts/GetData_jar/GetData.jar")
 
     ConnetionInfo.setMaster("local[2]")
-
-    val sc = ConnetionInfo.getSc("Test")
 
     Array(1.9, 2.9, 3.4, 3.5)
 
@@ -72,15 +75,7 @@ class SparkAction {
 
   def getUserData(): Unit ={
 
-    println("Test  "+new Date())
-
-    ConnetionInfo.setJar("/home/song/IdeaProjects/SparkDemo/out/artifacts/GetData_jar/GetData.jar")
-
-//    ConnetionInfo.setMaster("local[2]")
-
-    val sc = ConnetionInfo.getSc("getUserData")
-
-//    val line = sc.textFile("file:///home/song/ml-100k/u.user").map(line => line.split(","))
+    sc = ConnetionInfo.getSc("getUserData")
 
     val line = sc.textFile("hdfs://datanode1:9000/test/u.user").map(line => line.split(","))
 
@@ -102,18 +97,15 @@ class SparkAction {
 
   }
 
-
   def getFilmData(): Unit ={
 
-    println("getFilmData  "+new Date())
+    println("enter into getFilmData")
 
-    ConnetionInfo.setJar("/home/song/IdeaProjects/SparkDemo/out/artifacts/GetData_jar/GetData.jar")
+    val movies = sc.textFile("hdfs://datanode1:9000/test/u.item")
 
-    //    ConnetionInfo.setMaster("local[2]")
+    val title = movies.map(line => line.split("\\|").take(2)).map(array => (array(0).toInt,array(1))).collectAsMap()
 
-    val sc = ConnetionInfo.getSc("getFilmData")
-
-    //    val line = sc.textFile("file:///home/song/ml-100k/u.user").map(line => line.split(","))
+    println(title(123))
 
     val rawData = sc.textFile("hdfs://datanode1:9000/test/u.data")
 
@@ -124,9 +116,25 @@ class SparkAction {
 
     val model = ALS.train(ratings, 50, 10, 0.01)
 
-    println(model.userFeatures.count())
+    println("num is "+model.predict(789,123))
 
-    println(model.productFeatures.count())
+    val userId = 789
+
+    val k = 10
+
+    val topKRecs = model.recommendProducts(userId,k)
+
+//    println(topKRecs.mkString("\n"))
+
+    val movieForUser = ratings.keyBy(_.user).lookup(789)
+
+    println("这个用户看的电影数是： "+movieForUser.size)
+
+    println("数据集排序：")
+    movieForUser.sortBy(-_.rating).take(10).map(rating => (title(rating.product),rating.rating)).foreach(println)
+
+    println("智能推荐：")
+    topKRecs.map(rating => (title(rating.product),rating.rating)).foreach(println)
 
   }
 

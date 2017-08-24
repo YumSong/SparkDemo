@@ -8,6 +8,7 @@
       <element id="directory" name="META-INF">
         <element id="file-copy" path="$PROJECT_DIR$/META-INF/MANIFEST.MF" />
       </element>
+      <element id="library" level="project" name="Maven: org.jblas:jblas:1.2.3" />
     </root>
   </artifact>
 </component>

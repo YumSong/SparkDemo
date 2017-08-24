@@ -6,7 +6,7 @@ import org.apache.commons.pool2.impl.GenericObjectPoolConfig
 import org.apache.spark.{SparkConf, SparkContext}
 import redis.clients.jedis.JedisPool
 
-object ConnetionInfo {
+object ConnetionInfo extends Serializable{
 
   private val URL = "jdbc:mysql://192.168.0.223:3306/vlpr?useUnicode=true&characterEncoding=utf8"
 
@@ -34,7 +34,7 @@ object ConnetionInfo {
 
   private val redisTimeout = 30000
 
-  private val APP_NAME = "Test"
+  private var APP_NAME = "Test"
 
   lazy val jedisPool = new JedisPool(new GenericObjectPoolConfig(), redisHost, redisPort, redisTimeout)
 
@@ -55,6 +55,7 @@ object ConnetionInfo {
 
   def getSc(): SparkContext ={
 
+    @transient
     val conf = new SparkConf()
       .setAppName(APP_NAME)
       .setMaster(ConnetionInfo.SPARK_URL)
@@ -89,5 +90,9 @@ object ConnetionInfo {
   def getJar() = this.JAR_PATH
 
   def setMaster(URL:String) = { this.SPARK_URL = URL}
+
+  def setAppName(name :String )={this.APP_NAME = name}
+
+  def getMaster():String ={ SPARK_URL}
 
 }

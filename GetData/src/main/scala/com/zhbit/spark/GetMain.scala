@@ -5,7 +5,7 @@ import com.zhbit.spark.spark.SparkAction
 import scala.io.Source
 
 
-object GetMain {
+object GetMain extends Serializable{
 
   def main(args: Array[String]): Unit = {
 

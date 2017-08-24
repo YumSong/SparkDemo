@@ -63,6 +63,11 @@
             <artifactId>spark-streaming-kafka_2.11</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.jblas</groupId>
+            <artifactId>jblas</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

@@ -1,17 +1,25 @@
 package com.zhbit.spark.spark
 
-import java.util.Date
-
 import com.zhbit.spark.common.ConnetionInfo
-import org.apache.spark.mllib.recommendation.{ALS, Rating}
+import org.apache.spark.mllib.recommendation.{ALS, MatrixFactorizationModel, Rating}
+import org.apache.spark.rdd.RDD
+import org.jblas.DoubleMatrix
 
-class SparkAction {
-
+class SparkAction extends Serializable {
 
   ConnetionInfo.setJar("/home/song/IdeaProjects/SparkDemo/out/artifacts/GetData_jar/GetData.jar")
 
+  ConnetionInfo.setAppName("SparkAction")
+
+//  ConnetionInfo.setMaster("local[2]")
+
+  @transient
   var sc = ConnetionInfo.getSc()
 
+
+  /**
+    * 处理rdd数据的简单demo
+    */
   def dealData(): Unit ={
 
     println("enter test")
@@ -73,11 +81,14 @@ class SparkAction {
   }
 
 
+  /**
+    * 从hdfs文件系统中获取用户信息
+    */
   def getUserData(): Unit ={
 
-    sc = ConnetionInfo.getSc("getUserData")
-
     val line = sc.textFile("hdfs://datanode1:9000/test/u.user").map(line => line.split(","))
+
+//    val line = sc.textFile("file:///home/song/ml-100k/u.user").map(line => line.split(","))
 
     val num_user = line.map(s => s(0)).count()
 
@@ -97,36 +108,98 @@ class SparkAction {
 
   }
 
+
+  /**
+    * 获取电影信息的一些方法，例如计算评级等
+    */
   def getFilmData(): Unit ={
 
     println("enter into getFilmData")
 
-    val movies = sc.textFile("hdfs://datanode1:9000/test/u.item")
+    //提取出电影的title数组
+    val title = getTitle()
 
-    val title = movies.map(line => line.split("\\|").take(2)).map(array => (array(0).toInt,array(1))).collectAsMap()
+    //ALS 训练数据集，提取出模型
+    val model = ALS.train(getRatings(), 50, 10, 0.01)
 
-    println(title(123))
+    /**
+      * 查看推荐的结果
+      */
+    val userId = 789
+
+    val k = 10
+
+    //预测前十名
+    val topKRecs = model.recommendProducts(userId,k)
+
+    val movieForUser = getRatings().keyBy(_.user).lookup(789)
+
+    //展示推荐数据
+//    showData(movieForUser,topKRecs,model,title)
+
+    //计算均方差
+//    calBySquart(movieForUser,model,ratings)
+
+    println()
+
+    //计算K值平均率
+    calByMAPK(movieForUser,model,topKRecs)
+
+  }
+
+
+  /**
+    * 获取文件的评价数据集合
+    * @return
+    */
+  def getRatings(): RDD[Rating] ={
 
     val rawData = sc.textFile("hdfs://datanode1:9000/test/u.data")
+
+    //    val rawData = sc.textFile("file:///home/song/ml-100k/u.data")
 
     val rawRatings = rawData.map(line =>line.split("\t").take(3))
 
     val ratings = rawRatings.map { case Array(user, movie, rating) =>
       Rating(user.toInt, movie.toInt, rating.toDouble) }
 
-    val model = ALS.train(ratings, 50, 10, 0.01)
+    ratings
+
+  }
+
+
+  /**
+    * 获取文件的标题集合
+    * @return
+    */
+  def getTitle(): collection.Map[Int, String] ={
+
+    val movies = sc.textFile("hdfs://datanode1:9000/test/u.item")
+
+    //    val movies = sc.textFile("file:///home/song/ml-100k/u.item")
+
+    //提取出电影的title数组
+    val title = movies.map(line => line.split("\\|").take(2)).map(array => (array(0).toInt,array(1))).collectAsMap()
+
+    title
+
+  }
+
+
+  /**
+    * 展示推荐的数据等
+    * @param movieForUser
+    * @param topKRecs
+    * @param model
+    * @param title
+    */
+  def showData(movieForUser: Seq[Rating], topKRecs: Array[Rating], model: MatrixFactorizationModel, title: collection.Map[Int, String]) = {
+
+    println(title(123))
+
+    println(topKRecs.mkString("\n"))
 
     println("num is "+model.predict(789,123))
-
-    val userId = 789
-
-    val k = 10
-
-    val topKRecs = model.recommendProducts(userId,k)
-
-//    println(topKRecs.mkString("\n"))
-
-    val movieForUser = ratings.keyBy(_.user).lookup(789)
 
     println("这个用户看的电影数是： "+movieForUser.size)
 
@@ -135,7 +208,167 @@ class SparkAction {
 
     println("智能推荐：")
     topKRecs.map(rating => (title(rating.product),rating.rating)).foreach(println)
+  }
 
+
+  /**
+    * 计算MAPK
+    * @param movieForUser
+    * @param model
+    * @param topKRecs
+    */
+  def calByMAPK(movieForUser: Seq[Rating], model: MatrixFactorizationModel, topKRecs: Array[Rating]) = {
+
+    val actualMovices = movieForUser.map(_.product)
+
+    val predictMovies = topKRecs.map(_.product)
+
+    println(actualMovices)
+
+    println(predictMovies)
+
+    val apk10 = avgPrecisionK(actualMovices, predictMovies, 10)
+
+    println("APK is " + apk10)
+
+    //计算MAPK
+   val itemFactors = model.productFeatures.map{
+      case (id,factor) => factor
+    }.collect()
+
+    val itemMarix = new DoubleMatrix(itemFactors)
+
+    println(itemMarix)
+
+    println(itemMarix.rows,itemMarix.columns)
+
+    val imBroadcast = sc.broadcast(itemMarix)
+
+    val allRecs = model.userFeatures.map{
+
+      case (userId,array) =>
+
+        val userVector = new DoubleMatrix(array)
+
+        val scores = imBroadcast.value.mmul(userVector)
+
+        val sortedWithId = scores.data.zipWithIndex.sortBy(-_._1)
+
+        val recommededIds = sortedWithId.map(_._2+1).toSeq
+
+        (userId,recommededIds)
+    }
+
+    val userMovice = getRatings().map{
+
+      case Rating(user,product,rating) => (user,product)
+
+    }.groupBy(_._1)
+
+
+    val MAPK = allRecs.join(userMovice).map{
+
+      case (userId,(predicted,actualWithIds)) =>
+
+        val K = 10
+
+        val actual = actualWithIds.map(_._2).toSeq
+
+        avgPrecisionK(actual,predicted,K)
+
+    }.reduce(_ + _) /allRecs.count()
+
+    println("MAPK is " + MAPK)
+  }
+
+
+  /**
+    * 计算均方差
+    * @param movieForUser
+    * @param model
+    * @param ratings
+    */
+  def calBySquart(movieForUser:Seq[Rating],model:MatrixFactorizationModel,ratings: RDD[Rating]): Unit ={
+
+    //第一条数据的的均方差
+    val actualRating = movieForUser.take(1)(0)
+
+    println(actualRating)
+
+    val predictedRating = model.predict(789,actualRating.product)
+
+    println(predictedRating)
+
+    val squaredError = math.pow(predictedRating-actualRating.rating,2.0)
+
+    println(squaredError)
+
+    //将rating里面的用户和产品作为主键
+    val userProduct = ratings.map{ case Rating(user,product,rating) => (user,product)}
+
+    //模型预测（用户，产品）这个rdd 的评级RDD
+    val prediction = model.predict(userProduct).map{
+      case Rating(user,product,rating) =>((user,product),rating)
+    }
+
+    //模型预测的评级RDD jion进数据集里面的评级rdd
+    val ratingAndPredictions = ratings.map{
+      case Rating(user,product,rating) =>((user,product),rating)
+    }.join(prediction)
+
+    //计算整个数据集的方差
+    //reduce里面的二元指“(user,produce)”和“math.pow((actual-predicted),2)”这个两个元素
+    val Mse = ratingAndPredictions.map{
+      //计算每个元素的误差
+      case ((user,produce),(actual,predicted)) => math.pow((actual-predicted),2)
+    }.reduce(_ + _) / ratingAndPredictions.count()
+
+    println("MEAN SQUARED ERROR = "+Mse)
+
+    //计算出均方差
+    val RMSE = math.sqrt(Mse)
+
+    println("Root Mean Squared Error = " + RMSE)
+
+  }
+
+
+  /**
+    * 计算APK
+    * @param actual
+    * @param predicted
+    * @param k
+    * @return
+    */
+  def avgPrecisionK(actual:Seq[Int],predicted:Seq[Int],k:Int) :Double ={
+
+    val predk = predicted.take(k)
+
+    var score = 0.0
+
+    var numHits = 0.0
+
+    for((p,i) <- predk.zipWithIndex){
+
+      if(actual.contains(p)){
+
+        numHits += 1.0
+
+        score += numHits / (i.toDouble +1.0)
+
+      }
+
+    }
+
+    if(actual.isEmpty){
+
+      1.0
+
+    } else {
+
+      score/math.min(actual.size,k).toDouble
+
+    }
   }
 
 }

@@ -1,11 +1,12 @@
 package com.zhbit.spark.spark
 
 import com.zhbit.spark.common.ConnetionInfo
+import org.apache.spark.mllib.evaluation.{RankingMetrics, RegressionMetrics}
 import org.apache.spark.mllib.recommendation.{ALS, MatrixFactorizationModel, Rating}
 import org.apache.spark.rdd.RDD
 import org.jblas.DoubleMatrix
 
-class SparkAction extends Serializable {
+class RecommendationAction extends Serializable {
 
   ConnetionInfo.setJar("/home/song/IdeaProjects/SparkDemo/out/artifacts/GetData_jar/GetData.jar")
 
@@ -138,9 +139,8 @@ class SparkAction extends Serializable {
 //    showData(movieForUser,topKRecs,model,title)
 
     //计算均方差
-//    calBySquart(movieForUser,model,ratings)
+//    calBySquart(movieForUser,model,getRatings())
 
-    println()
 
     //计算K值平均率
     calByMAPK(movieForUser,model,topKRecs)
@@ -266,11 +266,11 @@ class SparkAction extends Serializable {
     }.groupBy(_._1)
 
 
-    val MAPK = allRecs.join(userMovice).map{
+    val MAPK1 = allRecs.join(userMovice).map{
 
       case (userId,(predicted,actualWithIds)) =>
 
-        val K = 10
+        val K = 2000
 
         val actual = actualWithIds.map(_._2).toSeq
 
@@ -278,7 +278,21 @@ class SparkAction extends Serializable {
 
     }.reduce(_ + _) /allRecs.count()
 
-    println("MAPK is " + MAPK)
+    val predictedAndTrueForRatings = allRecs.join(userMovice).map{
+
+      case (userId,(predicted,actualWithId)) =>
+
+        val actual =actualWithId.map(_._2)
+
+        (predicted.toArray,actual.toArray)
+
+    }
+
+    val rankingMetrics = new RankingMetrics(predictedAndTrueForRatings)
+
+    println("MAPK1 is " + MAPK1)
+
+    println("MAPK2 is " + rankingMetrics.meanAveragePrecision)
   }
 
 
@@ -318,17 +332,27 @@ class SparkAction extends Serializable {
 
     //计算整个数据集的方差
     //reduce里面的二元指“(user,produce)”和“math.pow((actual-predicted),2)”这个两个元素
-    val Mse = ratingAndPredictions.map{
+    val Mse1 = ratingAndPredictions.map{
       //计算每个元素的误差
       case ((user,produce),(actual,predicted)) => math.pow((actual-predicted),2)
     }.reduce(_ + _) / ratingAndPredictions.count()
 
-    println("MEAN SQUARED ERROR = "+Mse)
+    val predictedAndTrue = ratingAndPredictions.map{
+      case ((user,product),(predicted,actual)) => (actual,predicted)
+    }
+
+    val regressionMetrics = new RegressionMetrics(predictedAndTrue)
+
+    println("NO1 : MEAN SQUARED ERROR = "+Mse1)
+
+    println("NO2 : MEAN SQUARED ERROR = "+regressionMetrics.meanSquaredError)
 
     //计算出均方差
-    val RMSE = math.sqrt(Mse)
+    val RMSE1 = math.sqrt(Mse1)
 
-    println("Root Mean Squared Error = " + RMSE)
+    println("NO1 : Root Mean Squared Error = " + RMSE1)
+
+    println("NO2 : Root Mean Squared Error = " + regressionMetrics.rootMeanSquaredError)
 
   }
 

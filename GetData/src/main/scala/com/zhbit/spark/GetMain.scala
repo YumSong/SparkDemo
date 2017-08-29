@@ -1,6 +1,6 @@
 package com.zhbit.spark
 
-import com.zhbit.spark.spark.RecommendationAction
+import com.zhbit.spark.spark_MLlib.{ClassificationAction, RecommendationAction}
 
 import scala.io.Source
 
@@ -9,9 +9,11 @@ object GetMain extends Serializable{
 
   def main(args: Array[String]): Unit = {
 
-    val sa = new RecommendationAction
+    val ca = new ClassificationAction
 
-    sa.getFilmData()
+    val model = ca.selectModel(0)
+
+
 
   }
 

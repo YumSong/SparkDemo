@@ -1,4 +1,4 @@
-package com.zhbit.spark.spark
+package com.zhbit.spark.spark_MLlib
 
 import com.zhbit.spark.common.ConnetionInfo
 import org.apache.spark.mllib.evaluation.{RankingMetrics, RegressionMetrics}
@@ -6,6 +6,9 @@ import org.apache.spark.mllib.recommendation.{ALS, MatrixFactorizationModel, Rat
 import org.apache.spark.rdd.RDD
 import org.jblas.DoubleMatrix
 
+/**
+  * 构建基于spark的推荐引擎
+  */
 class RecommendationAction extends Serializable {
 
   ConnetionInfo.setJar("/home/song/IdeaProjects/SparkDemo/out/artifacts/GetData_jar/GetData.jar")
@@ -17,6 +20,7 @@ class RecommendationAction extends Serializable {
   @transient
   var sc = ConnetionInfo.getSc()
 
+  /**--------------------示例DEMO---------------------**/
 
   /**
     * 处理rdd数据的简单demo
@@ -81,6 +85,8 @@ class RecommendationAction extends Serializable {
 
   }
 
+
+  /**--------------------获取和处理数据---------------------**/
 
   /**
     * 从hdfs文件系统中获取用户信息
@@ -185,6 +191,7 @@ class RecommendationAction extends Serializable {
 
   }
 
+  /**--------------------展示数据---------------------**/
 
   /**
     * 展示推荐的数据等
@@ -210,6 +217,8 @@ class RecommendationAction extends Serializable {
     topKRecs.map(rating => (title(rating.product),rating.rating)).foreach(println)
   }
 
+
+  /**--------------------评估模型---------------------**/
 
   /**
     * 计算MAPK

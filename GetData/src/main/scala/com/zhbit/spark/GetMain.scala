@@ -11,9 +11,7 @@ object GetMain extends Serializable{
 
     val ca = new ClassificationAction
 
-    val model = ca.selectModel(0)
-
-
+    ca.checkModel()
 
   }
 

@@ -10,6 +10,8 @@ import org.apache.spark.mllib.tree.configuration.Algo
 import org.apache.spark.mllib.tree.impurity.Entropy
 import org.apache.spark.mllib.tree.model.DecisionTreeModel
 import org.apache.spark.rdd.RDD
+import org.apache.spark.mllib.linalg.distributed.RowMatrix
+import org.apache.spark.mllib.feature.StandardScaler
 
 /**
   * spark构建分类模型
@@ -28,6 +30,8 @@ class ClassificationAction extends Serializable{
 
   val maxTreeDepth = 5
 
+
+  /*************************************数据前期处理*************************************/
   /**
     * 切割处理数据
     * @return
@@ -41,6 +45,7 @@ class ClassificationAction extends Serializable{
     records
 
   }
+
 
   /**
     * 处理非负特征值给朴素贝叶斯分类模型训练
@@ -69,6 +74,7 @@ class ClassificationAction extends Serializable{
 
   }
 
+
   /**
     * 进一步清理数据给逻辑回归和线性支持向量机分类模型训练
     * 逻辑回归：某个数据属于正类的估计
@@ -83,8 +89,10 @@ class ClassificationAction extends Serializable{
 
       val trimmed = r.map(_.replaceAll("\"", ""))
 
+      //标记变量
       val label = trimmed(r.size - 1).toInt
 
+      //特征向量
       val features = trimmed.slice(4, r.size-1).map(d => if (d == "?") 0.0 else d.toDouble)
 
       LabeledPoint(label, Vectors.dense(features))
@@ -95,11 +103,10 @@ class ClassificationAction extends Serializable{
 
     data
 
-
-
-
   }
 
+
+  /*************************************训练模型*************************************/
   /**
     * 选择使用的模型（除了决策树模型）
     * @param way
@@ -118,6 +125,7 @@ class ClassificationAction extends Serializable{
 
   }
 
+
   //决策树模型
   def getDecisionTreeModel(): DecisionTreeModel ={
 
@@ -125,6 +133,8 @@ class ClassificationAction extends Serializable{
 
   }
 
+
+  /*************************************样例评估*************************************/
   /**
     * 使用模型预估样例
     */
@@ -146,6 +156,8 @@ class ClassificationAction extends Serializable{
 
   }
 
+
+  /*************************************模型性能评估*************************************/
 
   /**
     * 在二分类中,预测正确率可能是最简单评测方式,正确率等于训练样本中被正确分类的数目除以总样本数
@@ -182,6 +194,7 @@ class ClassificationAction extends Serializable{
       val Accuracy = TotalCorrect / data.count()
 
       Accuracy
+
     } else {
 
       val data = getDataNormal()
@@ -206,6 +219,7 @@ class ClassificationAction extends Serializable{
 
   }
 
+
   /**
     * 准确率和召回率的检验
     * 准确率：真阳性除以阳性总数
@@ -222,7 +236,7 @@ class ClassificationAction extends Serializable{
     * @param way
     * @return
     */
-  def checkModelByROCAndPR(way:Int):Seq[(String, Double, Double)]={
+  def checkModelToROCAndPR(way:Int):Seq[(String, Double, Double)]={
 
     if(way == 0 ){
 
@@ -319,6 +333,28 @@ class ClassificationAction extends Serializable{
   }
 
 
+  def checkModelByScaler(data:RDD[LabeledPoint]):Seq[(String,Double,Double)] = {
+
+    val lrModel = LogisticRegressionWithSGD.train(data, numIterations)
+
+    val lrMetrics:Seq[(String, Double, Double)] = Seq(lrModel).map{ model =>
+
+      val scoreAndLabels = data.map{ point =>
+
+        (model.predict(point.features),point.label)
+
+      }
+
+      val metrics = new BinaryClassificationMetrics(scoreAndLabels)
+
+      (model.getClass.getSimpleName,metrics.areaUnderPR(),metrics.areaUnderROC())
+
+    }
+
+    lrMetrics
+  }
+
+
   def checkModel(): Unit ={
 
     //展示正确率
@@ -331,7 +367,7 @@ class ClassificationAction extends Serializable{
     println("决策树 ：" + checkModelByCorrect_Rate(3))
 
     //展示PR和ROC
-    val allMetrcis = checkModelByROCAndPR(0) ++ checkModelByROCAndPR(1) ++ checkModelByROCAndPR(2) ++ checkModelByROCAndPR(3)
+    val allMetrcis = checkModelToROCAndPR(0) ++ checkModelToROCAndPR(1) ++ checkModelToROCAndPR(2) ++ checkModelToROCAndPR(3)
 
     allMetrcis.foreach{
       case (m,pr,roc) =>
@@ -339,6 +375,74 @@ class ClassificationAction extends Serializable{
     }
 
   }
+
+  /*************************************性能改进*************************************/
+
+  def showmatrixSummary(data:RDD[LabeledPoint]): Unit ={
+
+    val vectors = data.map(lp => lp.features)
+
+    val matrix = new RowMatrix(vectors)
+
+    //计算每列的汇总统计。
+    val matrixSummary = matrix.computeColumnSummaryStatistics()
+
+    print("均值")
+    //均值
+    println(matrixSummary.mean)
+
+    println()
+
+    print("最小值")
+
+    //最小值
+    println(matrixSummary.min)
+
+    println()
+
+    print("最大值")
+
+    //最大值
+    println(matrixSummary.max)
+
+    println()
+
+    print("方差")
+
+    //方差
+    println(matrixSummary.variance)
+
+    println()
+
+    print("非0项数目")
+    //非0项数目
+    println(matrixSummary.numNonzeros)
+
+  }
+
+
+  def checkScalerData(): Unit ={
+
+    val data = getDataNormal()
+
+    val vectors = data.map(lp =>lp.features)
+
+    val scaler = new StandardScaler(withMean = true, withStd = true).fit(vectors)
+
+    val scalerData = data.map(lp => LabeledPoint(lp.label,scaler.transform(lp.features)))
+
+    val s1Point = checkModelToROCAndPR(0).apply(0)
+
+    val s2Point = checkModelByScaler(scalerData).apply(0)
+
+    println("标准化后 : PR--" + s1Point._2 +"   ROC--" + s1Point._3)
+
+    println("标准化后 : PR--" + s2Point._2 +"   ROC--" + s2Point._3)
+
+  }
+
+
+
 
 
 

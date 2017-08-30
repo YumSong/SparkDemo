@@ -105,6 +105,46 @@ class ClassificationAction extends Serializable{
 
   }
 
+  /**
+    * 增加其他的特征如类别特征的
+    * 根据每个样本所属的类别特征建立索引
+    * 对相应的维度赋值微1，其余的为0
+    * 即在这个数据矩阵中，将14个类别换成14个列，每一列代表一个类别
+    * 每个样本属于这个类别的为1,反之为0
+    * @return
+    */
+  def addClassData(): RDD[LabeledPoint] ={
+
+    val records = cleanData()
+
+    val categories = records.map(r => r(3)).distinct.collect().zipWithIndex.toMap
+
+    val numCategories = categories.size
+
+    val dataCategories = records.map{ r=>
+
+        val trimmed = r.map(_.replace("\"",""))
+
+        val label = trimmed(r.size-1).toInt
+
+        val categoryIdx = categories(r(3))
+
+        val categoryFeatures = Array.ofDim[Double](numCategories)
+
+        categoryFeatures(categoryIdx) = 1.0
+
+        val otherFeatures = trimmed.slice(4,r.size-1).map(d => if(d =="?") 0.0 else d.toDouble)
+
+        val feature = categoryFeatures ++ otherFeatures
+
+        LabeledPoint(label,Vectors.dense(feature))
+
+    }
+
+    dataCategories
+
+  }
+
 
   /*************************************训练模型*************************************/
   /**
@@ -333,6 +373,11 @@ class ClassificationAction extends Serializable{
   }
 
 
+  /**
+    * 标准化数据
+    * @param data
+    * @return
+    */
   def checkModelByScaler(data:RDD[LabeledPoint]):Seq[(String,Double,Double)] = {
 
     val lrModel = LogisticRegressionWithSGD.train(data, numIterations)
@@ -378,6 +423,10 @@ class ClassificationAction extends Serializable{
 
   /*************************************性能改进*************************************/
 
+  /**
+    * 查看特征矩阵列数据的情况
+    * @param data
+    */
   def showmatrixSummary(data:RDD[LabeledPoint]): Unit ={
 
     val vectors = data.map(lp => lp.features)
@@ -415,35 +464,47 @@ class ClassificationAction extends Serializable{
     println()
 
     print("非0项数目")
+
     //非0项数目
     println(matrixSummary.numNonzeros)
 
   }
 
 
+  /**
+    * 1、查看标准化前的ROC和标准化后的ROC的大小
+    * 2、查看增加其他特征前的ROC和增加其他特征后的ROC的大小
+    */
   def checkScalerData(): Unit ={
 
     val data = getDataNormal()
 
+    val data3 = addClassData()
+
     val vectors = data.map(lp =>lp.features)
+
+    val vectors3 = data3.map(lp => lp.features)
 
     val scaler = new StandardScaler(withMean = true, withStd = true).fit(vectors)
 
+    val scaler3 = new StandardScaler(withMean = true, withStd = true).fit(vectors3)
+
     val scalerData = data.map(lp => LabeledPoint(lp.label,scaler.transform(lp.features)))
+
+    val scalerData3 = data3.map(lp => LabeledPoint(lp.label,scaler3.transform(lp.features)))
 
     val s1Point = checkModelToROCAndPR(0).apply(0)
 
     val s2Point = checkModelByScaler(scalerData).apply(0)
 
+    val s3Point = checkModelByScaler(scalerData3).apply(0)
+
     println("标准化后 : PR--" + s1Point._2 +"   ROC--" + s1Point._3)
 
     println("标准化后 : PR--" + s2Point._2 +"   ROC--" + s2Point._3)
 
+    println("增加特征后 : PR--" + s3Point._2 +"   ROC--" + s3Point._3)
+
   }
-
-
-
-
-
 
 }

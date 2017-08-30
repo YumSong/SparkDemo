@@ -146,6 +146,35 @@ class ClassificationAction extends Serializable{
   }
 
 
+  //给朴素贝叶斯模型的类别数据（在表中第四行的数据）
+  def getClassDateToBayes():RDD[LabeledPoint]={
+
+    val records = cleanData()
+
+    val categories = records.map(r => r(3)).distinct.collect().zipWithIndex.toMap
+
+    val numCategories = categories.size
+
+    val dataNB = records.map{r =>
+
+      val trimmed = r.map(_.replace("\"",""))
+
+      val label = trimmed(r.size-1).toInt
+
+      val categoryIdx = categories(r(3))
+
+      val categoryFeatrues = Array.ofDim[Double](numCategories)
+
+      categoryFeatrues(categoryIdx) = 1.0
+
+      LabeledPoint(label,Vectors.dense(categoryFeatrues))
+
+    }
+
+    dataNB
+  }
+
+
   /*************************************训练模型*************************************/
   /**
     * 选择使用的模型（除了决策树模型）
@@ -174,7 +203,7 @@ class ClassificationAction extends Serializable{
   }
 
 
-  /*************************************样例评估*************************************/
+  /*************************************样例预测*************************************/
   /**
     * 使用模型预估样例
     */
@@ -400,22 +429,55 @@ class ClassificationAction extends Serializable{
   }
 
 
+  /**
+    * Bayes训练正确数据格式的检验
+    * @return
+    */
+  def checkTrueDataByBayes(): Seq[(String, Double, Double)] ={
+
+    val nbData = getClassDateToBayes()
+
+    val nbModel = NaiveBayes.train(nbData)
+
+    val nbMetrics:Seq[(String, Double, Double)] = Seq(nbModel).map{ model =>
+
+      val scoreAndLabels = nbData.map{ point =>
+
+        (model.predict(point.features),point.label)
+
+      }
+
+      val metrics = new BinaryClassificationMetrics(scoreAndLabels)
+
+      (model.getClass.getSimpleName,metrics.areaUnderPR(),metrics.areaUnderROC())
+
+    }
+
+    nbMetrics
+
+  }
+
+  /**
+    * 展示数据
+    */
   def checkModel(): Unit ={
 
-    //展示正确率
-    println("逻辑回归lr : " + checkModelByCorrect_Rate(0))
-
-    println("线性向量机SVM : " + checkModelByCorrect_Rate(1))
-
-    println("朴素贝叶斯 : " + checkModelByCorrect_Rate(2))
-
-    println("决策树 ：" + checkModelByCorrect_Rate(3))
+//    //展示正确率
+//    println("逻辑回归lr : " + checkModelByCorrect_Rate(0))
+//
+//    println("线性向量机SVM : " + checkModelByCorrect_Rate(1))
+//
+//    println("朴素贝叶斯 : " + checkModelByCorrect_Rate(2))
+//
+//    println("决策树 ：" + checkModelByCorrect_Rate(3))
 
     //展示PR和ROC
     val allMetrcis = checkModelToROCAndPR(0) ++ checkModelToROCAndPR(1) ++ checkModelToROCAndPR(2) ++ checkModelToROCAndPR(3)
 
     allMetrcis.foreach{
+
       case (m,pr,roc) =>
+
         println(" (" + m +") : PR is "+pr +"  ROC is "+roc)
     }
 
@@ -471,11 +533,12 @@ class ClassificationAction extends Serializable{
   }
 
 
+  //增加类别特征提高性能
   /**
     * 1、查看标准化前的ROC和标准化后的ROC的大小
     * 2、查看增加其他特征前的ROC和增加其他特征后的ROC的大小
     */
-  def checkScalerData(): Unit ={
+  def showScalerData(): Unit ={
 
     val data = getDataNormal()
 
@@ -504,6 +567,15 @@ class ClassificationAction extends Serializable{
     println("标准化后 : PR--" + s2Point._2 +"   ROC--" + s2Point._3)
 
     println("增加特征后 : PR--" + s3Point._2 +"   ROC--" + s3Point._3)
+
+  }
+
+
+  def showTrueData(): Unit ={
+
+    val point = checkTrueDataByBayes().apply(0)
+
+    println(point._1+"  "+"标准化后 : PR--" + point._2 +"   ROC--" + point._3)
 
   }
 

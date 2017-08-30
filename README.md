@@ -2,7 +2,6 @@
       
 <h2>一、集群搭建和操作步骤</h2><br>
 <h3>
-
 1、集群组件开启步奏，依次开启hadoop，spark，zookeeper和kafka<br>
 
 2、编写zookeeper和kafka的集群开启脚本的时候注意环境变量的位置，.bashrc指的是当前命令窗口使用的环境变量，   Ubuntu系统的环境变量主要是在/etc/profile 别改错了<br>
@@ -14,10 +13,10 @@
 5、等有钱加内存条把集群内存给扩大，虚拟机8g内存不能同时跑spark，hadoop，kafka，zookeeper和idea，后面要是加上redis和hbase等缓存和数据库就不够用了<br>
 
 </h3>
+<br>
 
 <h2>二、spark</h2><br>
 <h3>
-
 1、使用spark提取有效特征<br>
 
 2、使用spark MLlib训练推荐模型<br>
@@ -29,8 +28,8 @@
 5、完成MAPK检验模型（注意事项：当map里面有调用到外部的变量或者函数时，要将类和object进行序列化，但是sc和conf不能将其序列化<br>
 
 6、使用MLlib检验模型<br>
-
 </h3>
+<br>
 
 <h2>三、spark分类特征</h2><br>
 <h3>

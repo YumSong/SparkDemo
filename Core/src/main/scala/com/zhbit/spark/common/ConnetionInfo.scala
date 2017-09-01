@@ -3,6 +3,7 @@ package com.zhbit.spark.common
 import java.util.Properties
 
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig
+import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.{SparkConf, SparkContext}
 import redis.clients.jedis.JedisPool
 
@@ -51,6 +52,13 @@ object ConnetionInfo extends Serializable{
     val sc = new SparkContext(conf)
 
     sc
+  }
+
+  def getSsc(name :String, time :Int): StreamingContext ={
+
+    val ssc = new StreamingContext(SPARK_URL,name,Seconds(time))
+
+    return ssc
   }
 
   def getSc(): SparkContext ={

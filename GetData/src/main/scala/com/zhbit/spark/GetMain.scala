@@ -1,7 +1,8 @@
 package com.zhbit.spark
 
 import com.zhbit.spark.spark_MLlib.{ClassModelParams, ClassificationAction, RecommendationAction}
-import com.zhbit.spark.streaming.GetData
+import com.zhbit.spark.streaming.StreamingGetData
+import com.zhbit.spark.streaming_MLlib.{ StreamingMLlibMode}
 
 
 object GetMain extends Serializable{
@@ -10,15 +11,11 @@ object GetMain extends Serializable{
 
     if(args.length > 0){
 
-      val gd = new GetData
-
-      gd.getDataByStreaming(args(0).toInt)
+      new StreamingMLlibMode().checkModel(args(0).toInt)
 
     }else {
 
-      val gd = new GetData
-
-      gd.getDataByStreaming(9999)
+      new StreamingMLlibMode().checkModel(9898)
 
     }
 

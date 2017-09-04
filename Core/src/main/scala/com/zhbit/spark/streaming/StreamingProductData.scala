@@ -6,7 +6,7 @@ import java.net.ServerSocket
 import scala.tools.nsc.io.Socket
 import scala.util.Random
 
-class ProductData {
+class StreamingProductData {
 
   val random = new Random()
 

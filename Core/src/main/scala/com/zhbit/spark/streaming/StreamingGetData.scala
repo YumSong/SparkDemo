@@ -7,7 +7,7 @@ import com.zhbit.spark.common.ConnetionInfo
 import org.apache.spark.streaming.Seconds
 import org.apache.spark.streaming.dstream.{DStream, ReceiverInputDStream}
 
-class GetData extends Serializable {
+class StreamingGetData extends Serializable {
 
   ConnetionInfo.setMaster("local[2]")
 
